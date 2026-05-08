@@ -1,0 +1,14 @@
+{
+  "name": "tenant-app",
+  "version": "1.0.0",
+  "description": "Tenant defect reporting and work order system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^2.0.0",
+    "pg": "^8.11.3"
+  }
+}
