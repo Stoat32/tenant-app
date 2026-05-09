@@ -11,6 +11,19 @@ const pool = new Pool({
 });
 
 async function init() {
+  // Drop old v1 work_orders table if it uses the old schema (missing track_token)
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='work_orders' AND column_name='unit_number'
+      ) THEN
+        DROP TABLE IF EXISTS work_orders CASCADE;
+      END IF;
+    END $$;
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id            SERIAL PRIMARY KEY,
