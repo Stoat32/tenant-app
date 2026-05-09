@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit a Work Order — TenantReport</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">🏠 TenantReport</a>
+      <a href="/landlord/login.html" class="btn btn-outline btn-sm">Landlord Login</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card" style="margin-top:2rem;">
+      <h1 style="font-size:1.5rem;margin-bottom:.25rem;">Submit a Work Order</h1>
+      <p style="color:var(--gray-600);margin-bottom:1.5rem;font-size:.95rem;">Describe the issue in your unit. Your landlord will be notified immediately.</p>
+
+      <div id="formMessage" class="message hidden"></div>
+
+      <form id="submitForm" enctype="multipart/form-data">
+        <fieldset>
+          <legend>Your Details</legend>
+          <div class="grid-2">
+            <div class="field">
+              <label>Full Name <span class="req">*</span></label>
+              <input name="tenant_name" placeholder="Jane Smith" required />
+            </div>
+            <div class="field">
+              <label>Email <span class="req">*</span></label>
+              <input type="email" name="tenant_email" placeholder="jane@email.com" required />
+            </div>
+          </div>
+          <div class="field">
+            <label>Phone (optional)</label>
+            <input name="tenant_phone" placeholder="+968 9000 0000" />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Your Unit</legend>
+          <div class="field">
+            <label>Property <span class="req">*</span></label>
+            <select name="property_id" id="propertySelect" required>
+              <option value="">— Select your property —</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Unit <span class="req">*</span></label>
+            <select name="unit_id" id="unitSelect" required disabled>
+              <option value="">— Select property first —</option>
+            </select>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Issue Details</legend>
+          <div class="field">
+            <label>Category <span class="req">*</span></label>
+            <select name="category" required>
+              <option value="">— Select a category —</option>
+              <option value="plumbing">🔧 Plumbing</option>
+              <option value="electrical">⚡ Electrical</option>
+              <option value="heating_cooling">🌡️ Heating / Cooling</option>
+              <option value="structural">🧱 Structural / Walls / Ceiling</option>
+              <option value="appliances">🍳 Appliances</option>
+              <option value="pest">🐛 Pest / Infestation</option>
+              <option value="security">🔒 Locks / Security</option>
+              <option value="other">📋 Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Description <span class="req">*</span></label>
+            <textarea name="description" rows="4" placeholder="Describe the issue — where it is, when it started, how severe..." required></textarea>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Photo Evidence (optional)</legend>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" name="photo" id="photoInput" accept="image/*" capture="environment" />
+            <div id="uploadPlaceholder">
+              <span class="upload-icon">📷</span>
+              <p style="color:var(--gray-600);font-size:.9rem;">Tap to take a photo or choose from gallery</p>
+              <p style="font-size:.8rem;color:var(--gray-400);margin-top:.25rem;">JPG, PNG, HEIC — max 10MB</p>
+            </div>
+            <img id="photoPreview" class="photo-preview hidden" alt="Preview" />
+          </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary btn-full" id="submitBtn">Submit Work Order</button>
+      </form>
+    </div>
+
+    <!-- Success state -->
+    <div id="successCard" class="card hidden" style="margin-top:2rem;text-align:center;">
+      <div style="font-size:3rem;margin-bottom:1rem;">✅</div>
+      <h2 style="margin-bottom:.5rem;">Work Order Submitted</h2>
+      <p style="color:var(--gray-600);margin-bottom:1.5rem;">Your landlord has been notified. Save the link below to track your complaint status.</p>
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:1rem;margin-bottom:1.25rem;word-break:break-all;">
+        <a id="trackLink" href="#" style="color:var(--primary);font-weight:500;"></a>
+      </div>
+      <button onclick="navigator.clipboard.writeText(document.getElementById('trackLink').href)" class="btn btn-outline">📋 Copy Link</button>
+    </div>
+  </main>
+
+  <script>
+    const propertySelect = document.getElementById('propertySelect');
+    const unitSelect = document.getElementById('unitSelect');
+    let allProperties = [];
+
+    fetch('/api/tenant/properties').then(r => r.json()).then(data => {
+      allProperties = data;
+      data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} — ${p.address}`;
+        propertySelect.appendChild(opt);
+      });
+    });
+
+    propertySelect.addEventListener('change', () => {
+      const prop = allProperties.find(p => p.id == propertySelect.value);
+      unitSelect.innerHTML = '<option value="">— Select your unit —</option>';
+      unitSelect.disabled = true;
+      if (!prop || !prop.units[0]) return;
+      prop.units.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = `Unit ${u.unit_number}`;
+        unitSelect.appendChild(opt);
+      });
+      unitSelect.disabled = false;
+    });
+
+    document.getElementById('photoInput').addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('photoPreview').src = e.target.result;
+        document.getElementById('photoPreview').classList.remove('hidden');
+        document.getElementById('uploadPlaceholder').classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('submitForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('formMessage');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      msg.className = 'message hidden';
+
+      try {
+        const res = await fetch('/api/tenant/submit', { method:'POST', body: new FormData(e.target) });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Submission failed');
+
+        const trackUrl = `${location.origin}/track/${json.track_token}`;
+        document.getElementById('trackLink').href = trackUrl;
+        document.getElementById('trackLink').textContent = trackUrl;
+        document.getElementById('submitForm').parentElement.classList.add('hidden');
+        document.getElementById('successCard').classList.remove('hidden');
+      } catch(err) {
+        msg.textContent = err.message;
+        msg.className = 'message error';
+        btn.disabled = false; btn.textContent = 'Submit Work Order';
+      }
+    });
+  </script>
+</body>
+</html>

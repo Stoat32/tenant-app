@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tradesmen — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏠 TenantReport</div>
+    <nav>
+      <a href="/landlord/dashboard.html">📊 Dashboard</a>
+      <a href="/landlord/properties.html">🏢 Properties</a>
+      <a href="/landlord/work-orders.html">📋 Work Orders</a>
+      <a href="/landlord/tradesmen.html" class="active">🔨 Tradesmen</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="userName" style="color:#94a3b8;margin-bottom:.5rem;font-size:.85rem;"></div>
+      <button onclick="logout()" class="btn btn-ghost btn-sm" style="color:#94a3b8;padding:0;">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Tradesmen</h1>
+      <button class="btn btn-primary btn-sm" onclick="openModal()">+ Add Tradesman</button>
+    </div>
+    <div class="page-body">
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Trade</th><th>Phone</th><th>Email</th><th>Added</th><th></th></tr>
+            </thead>
+            <tbody id="tradesmenBody">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Modal -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>Add Tradesman</h2>
+    <form id="tradesmanForm">
+      <div class="grid-2">
+        <div class="field"><label>Full Name <span class="req">*</span></label><input name="name" placeholder="Ali Al-Balushi" required /></div>
+        <div class="field"><label>Trade <span class="req">*</span></label>
+          <select name="trade" required>
+            <option value="">— Select trade —</option>
+            <option value="Plumber">Plumber</option>
+            <option value="Electrician">Electrician</option>
+            <option value="HVAC Technician">HVAC Technician</option>
+            <option value="Carpenter">Carpenter</option>
+            <option value="Painter">Painter</option>
+            <option value="General Maintenance">General Maintenance</option>
+            <option value="Pest Control">Pest Control</option>
+            <option value="Locksmith">Locksmith</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Phone</label><input name="phone" placeholder="+968 9000 0000" /></div>
+        <div class="field"><label>Email</label><input type="email" name="email" placeholder="ali@email.com" /></div>
+      </div>
+      <div id="formMsg" class="message hidden"></div>
+      <button type="submit" class="btn btn-primary btn-full">Add Tradesman</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  async function init() {
+    const me = await fetch('/api/auth/me').then(r => r.json()).catch(() => null);
+    if (!me || me.role !== 'landlord') { location.href = '/landlord/login.html'; return; }
+    document.getElementById('userName').textContent = me.name;
+    load();
+  }
+
+  async function load() {
+    const list = await fetch('/api/landlord/tradesmen').then(r => r.json());
+    const tbody = document.getElementById('tradesmenBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">No tradesmen added yet. Add one to start assigning work orders.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(t => `<tr>
+      <td><strong>${esc(t.name)}</strong></td>
+      <td>${esc(t.trade)}</td>
+      <td>${esc(t.phone || '—')}</td>
+      <td>${esc(t.email || '—')}</td>
+      <td>${new Date(t.created_at).toLocaleDateString()}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="remove(${t.id})">Remove</button></td>
+    </tr>`).join('');
+  }
+
+  function openModal() { document.getElementById('modal').classList.remove('hidden'); }
+  function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+  document.getElementById('tradesmanForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const res = await fetch('/api/landlord/tradesmen', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (res.ok) { closeModal(); e.target.reset(); load(); }
+    else { const j = await res.json(); document.getElementById('formMsg').textContent = j.error; document.getElementById('formMsg').className = 'message error'; }
+  });
+
+  async function remove(id) {
+    if (!confirm('Remove this tradesman?')) return;
+    await fetch(`/api/landlord/tradesmen/${id}`, { method:'DELETE' });
+    load();
+  }
+
+  async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/landlord/login.html'; }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  init();
+</script>
+</body>
+</html>

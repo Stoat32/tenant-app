@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Properties — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏠 TenantReport</div>
+    <nav>
+      <a href="/landlord/dashboard.html">📊 Dashboard</a>
+      <a href="/landlord/properties.html" class="active">🏢 Properties</a>
+      <a href="/landlord/work-orders.html">📋 Work Orders</a>
+      <a href="/landlord/tradesmen.html">🔨 Tradesmen</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="userName" style="color:#94a3b8;margin-bottom:.5rem;font-size:.85rem;"></div>
+      <button onclick="logout()" class="btn btn-ghost btn-sm" style="color:#94a3b8;padding:0;">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1>Properties & Units</h1>
+      <button class="btn btn-primary btn-sm" onclick="openPropModal()">+ Add Property</button>
+    </div>
+
+    <div class="page-body">
+      <div id="msg" class="message hidden"></div>
+      <div id="propList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Property Modal -->
+<div class="modal-overlay hidden" id="propModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePropModal()">✕</button>
+    <h2>Add Property</h2>
+    <form id="propForm">
+      <div class="field"><label>Property Name <span class="req">*</span></label><input name="name" placeholder="Al Noor Residences" required /></div>
+      <div class="field"><label>Address <span class="req">*</span></label><input name="address" placeholder="Way 3042, Al Khuwair" required /></div>
+      <div class="field"><label>City</label><input name="city" value="Muscat" /></div>
+      <div id="propMsg" class="message hidden"></div>
+      <button type="submit" class="btn btn-primary btn-full">Add Property</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add Unit Modal -->
+<div class="modal-overlay hidden" id="unitModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeUnitModal()">✕</button>
+    <h2>Add Unit</h2>
+    <form id="unitForm">
+      <div class="grid-2">
+        <div class="field"><label>Unit Number <span class="req">*</span></label><input name="unit_number" placeholder="4B" required /></div>
+        <div class="field"><label>Floor</label><input type="number" name="floor" placeholder="4" /></div>
+        <div class="field"><label>Size (sqm)</label><input type="number" name="size_sqm" placeholder="95" /></div>
+        <div class="field"><label>Bedrooms</label><input type="number" name="bedrooms" placeholder="2" /></div>
+        <div class="field"><label>Bathrooms</label><input type="number" name="bathrooms" placeholder="1" /></div>
+        <div class="field"><label>Rent (OMR/mo)</label><input type="number" name="rent" placeholder="350" /></div>
+      </div>
+      <div class="field"><label>Unit Type</label>
+        <select name="unit_type">
+          <option value="">— Select —</option>
+          <option value="studio">Studio</option>
+          <option value="apartment">Apartment</option>
+          <option value="villa">Villa</option>
+          <option value="townhouse">Townhouse</option>
+          <option value="penthouse">Penthouse</option>
+        </select>
+      </div>
+      <div id="unitMsg" class="message hidden"></div>
+      <button type="submit" class="btn btn-primary btn-full">Add Unit</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  let activePropId = null;
+
+  async function init() {
+    const me = await fetch('/api/auth/me').then(r => r.json()).catch(() => null);
+    if (!me || me.role !== 'landlord') { location.href = '/landlord/login.html'; return; }
+    document.getElementById('userName').textContent = me.name;
+    loadProperties();
+  }
+
+  async function loadProperties() {
+    const props = await fetch('/api/landlord/properties').then(r => r.json());
+    const el = document.getElementById('propList');
+    if (!props.length) {
+      el.innerHTML = `<div class="card" style="text-align:center;padding:3rem;color:var(--gray-400);">
+        <div style="font-size:2.5rem;margin-bottom:.75rem;">🏢</div>
+        <p>No properties yet. Add your first property to get started.</p></div>`;
+      return;
+    }
+    el.innerHTML = props.map(p => `
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:1rem;">
+          <div>
+            <h2 style="font-size:1.1rem;">${esc(p.name)}</h2>
+            <p style="color:var(--gray-600);font-size:.875rem;">${esc(p.address)}, ${esc(p.city)}</p>
+          </div>
+          <div style="display:flex;gap:.5rem;">
+            <button class="btn btn-primary btn-sm" onclick="openUnitModal(${p.id})">+ Add Unit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteProperty(${p.id})">Delete</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="units-${p.id}">
+          <p style="color:var(--gray-400);font-size:.875rem;">Loading units…</p>
+        </div>
+      </div>`).join('');
+    props.forEach(p => loadUnits(p.id));
+  }
+
+  async function loadUnits(propId) {
+    const units = await fetch(`/api/landlord/properties/${propId}/units`).then(r => r.json());
+    const el = document.getElementById(`units-${propId}`);
+    if (!units.length) { el.innerHTML = '<p style="color:var(--gray-400);font-size:.875rem;">No units added yet.</p>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Unit</th><th>Floor</th><th>Type</th><th>Bedrooms</th><th>Bathrooms</th><th>Size</th><th>Rent (OMR)</th><th>Status</th><th></th></tr></thead>
+      <tbody>${units.map(u => `<tr>
+        <td><strong>${esc(u.unit_number)}</strong></td>
+        <td>${u.floor ?? '—'}</td>
+        <td style="text-transform:capitalize;">${u.unit_type || '—'}</td>
+        <td>${u.bedrooms ?? '—'}</td>
+        <td>${u.bathrooms ?? '—'}</td>
+        <td>${u.size_sqm ? u.size_sqm + ' m²' : '—'}</td>
+        <td>${u.rent ? 'OMR ' + u.rent : '—'}</td>
+        <td><span class="badge" style="background:${u.status==='occupied'?'#dcfce7':'#f3f4f6'};color:${u.status==='occupied'?'#166534':'#4b5563'};">${u.status}</span></td>
+        <td><button class="btn btn-danger btn-sm" onclick="deleteUnit(${u.id},${propId})">Remove</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
+  function openPropModal() { document.getElementById('propModal').classList.remove('hidden'); }
+  function closePropModal() { document.getElementById('propModal').classList.add('hidden'); }
+  function openUnitModal(id) { activePropId = id; document.getElementById('unitModal').classList.remove('hidden'); }
+  function closeUnitModal() { document.getElementById('unitModal').classList.add('hidden'); }
+
+  document.getElementById('propForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const res = await fetch('/api/landlord/properties', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (res.ok) { closePropModal(); e.target.reset(); loadProperties(); }
+    else { const j = await res.json(); document.getElementById('propMsg').textContent = j.error; document.getElementById('propMsg').className = 'message error'; }
+  });
+
+  document.getElementById('unitForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const res = await fetch(`/api/landlord/properties/${activePropId}/units`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (res.ok) { closeUnitModal(); e.target.reset(); loadUnits(activePropId); }
+    else { const j = await res.json(); document.getElementById('unitMsg').textContent = j.error; document.getElementById('unitMsg').className = 'message error'; }
+  });
+
+  async function deleteProperty(id) {
+    if (!confirm('Delete this property and all its units?')) return;
+    await fetch(`/api/landlord/properties/${id}`, { method:'DELETE' });
+    loadProperties();
+  }
+
+  async function deleteUnit(id, propId) {
+    if (!confirm('Remove this unit?')) return;
+    await fetch(`/api/landlord/units/${id}`, { method:'DELETE' });
+    loadUnits(propId);
+  }
+
+  async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/landlord/login.html'; }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  init();
+</script>
+</body>
+</html>

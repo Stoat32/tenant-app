@@ -3,94 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Report a Defect — Tenant Portal</title>
+  <title>TenantReport — Muscat's Property Defect Platform</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <div class="logo">🏠 TenantReport</div>
-      <a href="dashboard.html" class="btn btn-outline">Landlord Dashboard →</a>
+      <a href="/" class="logo">🏠 TenantReport</a>
+      <div class="header-actions">
+        <a href="/submit.html" class="btn btn-outline">Report a Defect</a>
+        <a href="/landlord/login.html" class="btn btn-primary">Landlord Login</a>
+      </div>
     </div>
   </header>
 
-  <main class="container">
-    <div class="card form-card">
-      <h1>Submit a Work Order</h1>
-      <p class="subtitle">Report a defect or complaint. Your landlord will be notified immediately.</p>
+  <section class="hero">
+    <h1>Fix it. Fast. Transparently.</h1>
+    <p>Muscat's platform connecting tenants and landlords for seamless defect reporting and repair management across 310,000 residential units.</p>
+    <div class="hero-actions">
+      <a href="/submit.html" class="btn btn-white btn-lg">📷 Report a Defect</a>
+      <a href="/landlord/login.html" class="btn btn-outline-white btn-lg">🏢 Landlord Portal</a>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📸</div>
+        <h3>Photo Evidence</h3>
+        <p>Tenants photograph defects and submit instantly with full details.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔔</div>
+        <h3>Live Updates</h3>
+        <p>Track your complaint status in real time from submission to sign-off.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⭐</div>
+        <h3>Tenant Sign-Off</h3>
+        <p>Tenants confirm completion and rate the service for accountability.</p>
+      </div>
+    </div>
+  </section>
 
-      <form id="workOrderForm" enctype="multipart/form-data">
+  <main class="container" style="padding-top:3rem;padding-bottom:3rem;">
+    <div class="grid-2" style="gap:2rem;align-items:start;">
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:.75rem;">🏘️</div>
+        <h2 style="margin-bottom:.5rem;">I'm a Tenant</h2>
+        <p style="color:var(--gray-600);margin-bottom:1.25rem;font-size:.95rem;">Noticed something broken? Submit a defect report in under 2 minutes. We'll keep you updated every step of the way.</p>
+        <a href="/submit.html" class="btn btn-primary btn-full">Submit a Work Order</a>
+      </div>
+      <div class="card">
+        <div style="font-size:2rem;margin-bottom:.75rem;">🏢</div>
+        <h2 style="margin-bottom:.5rem;">I'm a Landlord</h2>
+        <p style="color:var(--gray-600);margin-bottom:1.25rem;font-size:.95rem;">Manage properties, assign tradesmen, and track every repair across your entire portfolio in one place.</p>
+        <a href="/landlord/login.html" class="btn btn-primary btn-full">Go to Landlord Portal</a>
+      </div>
+    </div>
 
-        <fieldset>
-          <legend>Your Details</legend>
-          <div class="row">
-            <div class="field">
-              <label for="tenant_name">Full Name <span class="req">*</span></label>
-              <input type="text" id="tenant_name" name="tenant_name" placeholder="Jane Smith" required />
-            </div>
-            <div class="field">
-              <label for="unit_number">Unit Number <span class="req">*</span></label>
-              <input type="text" id="unit_number" name="unit_number" placeholder="e.g. 4B" required />
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label for="email">Email <span class="req">*</span></label>
-              <input type="email" id="email" name="email" placeholder="jane@email.com" required />
-            </div>
-            <div class="field">
-              <label for="phone">Phone (optional)</label>
-              <input type="tel" id="phone" name="phone" placeholder="+1 555 000 0000" />
-            </div>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Issue Details</legend>
-          <div class="field">
-            <label for="category">Category <span class="req">*</span></label>
-            <select id="category" name="category" required>
-              <option value="">— Select a category —</option>
-              <option value="plumbing">🔧 Plumbing</option>
-              <option value="electrical">⚡ Electrical</option>
-              <option value="heating_cooling">🌡️ Heating / Cooling</option>
-              <option value="structural">🧱 Structural / Walls / Ceiling</option>
-              <option value="appliances">🍳 Appliances</option>
-              <option value="pest">🐛 Pest / Infestation</option>
-              <option value="security">🔒 Locks / Security</option>
-              <option value="other">📋 Other</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="description">Description <span class="req">*</span></label>
-            <textarea id="description" name="description" rows="4"
-              placeholder="Describe the issue in detail — where it is, when it started, how severe it is..."
-              required></textarea>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Photo Evidence</legend>
-          <div class="upload-area" id="uploadArea">
-            <input type="file" id="photo" name="photo" accept="image/*" capture="environment" />
-            <div class="upload-placeholder" id="uploadPlaceholder">
-              <span class="upload-icon">📷</span>
-              <p>Tap to take a photo or choose from gallery</p>
-              <p class="hint">JPG, PNG, HEIC — max 10MB</p>
-            </div>
-            <img id="photoPreview" class="photo-preview hidden" alt="Preview" />
-          </div>
-        </fieldset>
-
-        <div id="formMessage" class="message hidden"></div>
-
-        <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
-          Submit Work Order
-        </button>
-      </form>
+    <div style="text-align:center;margin-top:3rem;">
+      <p style="color:var(--gray-400);font-size:.875rem;">Already submitted a complaint? <a href="/submit.html#track" style="color:var(--primary);">Track it here →</a></p>
     </div>
   </main>
-
-  <script src="tenant.js"></script>
 </body>
 </html>

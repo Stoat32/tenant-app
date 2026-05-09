@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Track Your Work Order — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">🏠 TenantReport</a>
+      <a href="/submit.html" class="btn btn-outline btn-sm">New Report</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="loading" style="text-align:center;padding:4rem;color:var(--gray-400);">Loading your work order…</div>
+    <div id="notFound" class="card hidden" style="margin-top:2rem;text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:.75rem;">❌</div>
+      <h2>Work Order Not Found</h2>
+      <p style="color:var(--gray-600);margin-top:.5rem;">This tracking link may be invalid or expired.</p>
+    </div>
+
+    <div id="orderCard" class="hidden" style="margin-top:2rem;">
+      <!-- Status Timeline -->
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+          <div>
+            <h2 id="orderTitle" style="font-size:1.2rem;"></h2>
+            <p id="orderSub" style="color:var(--gray-600);font-size:.875rem;margin-top:.2rem;"></p>
+          </div>
+          <span id="statusBadge" class="badge"></span>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="timeline-step" id="step-submitted">
+            <div class="timeline-dot">1</div>
+            <div class="timeline-label">Submitted</div>
+          </div>
+          <div class="timeline-step" id="step-accepted">
+            <div class="timeline-dot">2</div>
+            <div class="timeline-label">Accepted</div>
+          </div>
+          <div class="timeline-step" id="step-scheduled">
+            <div class="timeline-dot">3</div>
+            <div class="timeline-label">Scheduled</div>
+          </div>
+          <div class="timeline-step" id="step-completed">
+            <div class="timeline-dot">4</div>
+            <div class="timeline-label">Complete</div>
+          </div>
+          <div class="timeline-step" id="step-closed">
+            <div class="timeline-dot">5</div>
+            <div class="timeline-label">Closed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Details -->
+      <div class="grid-2" style="margin-bottom:1rem;">
+        <div class="card">
+          <div class="card-title">📋 Issue Details</div>
+          <div id="issueDetails"></div>
+        </div>
+        <div class="card" id="tradesmanCard" style="display:none;">
+          <div class="card-title">🔨 Assigned Tradesman</div>
+          <div id="tradesmanDetails"></div>
+        </div>
+      </div>
+
+      <!-- Photo -->
+      <div class="card" id="photoCard" style="display:none;margin-bottom:1rem;">
+        <div class="card-title">📷 Photo Evidence</div>
+        <img id="orderPhoto" style="max-width:100%;border-radius:8px;" alt="Photo" />
+      </div>
+
+      <!-- Booking -->
+      <div class="card" id="bookingSection" style="display:none;margin-bottom:1rem;">
+        <div class="card-title">📅 Book a Repair Slot</div>
+        <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:1rem;">Choose a convenient date and time for the repair.</p>
+        <div id="existingBooking" class="message info hidden"></div>
+        <div class="grid-2" style="margin-bottom:1rem;">
+          <div class="field">
+            <label>Preferred Date</label>
+            <input type="date" id="bookDate" />
+          </div>
+          <div class="field">
+            <label>Preferred Time</label>
+            <select id="bookTime">
+              <option value="08:00-10:00">8:00 AM – 10:00 AM</option>
+              <option value="10:00-12:00">10:00 AM – 12:00 PM</option>
+              <option value="12:00-14:00">12:00 PM – 2:00 PM</option>
+              <option value="14:00-16:00">2:00 PM – 4:00 PM</option>
+              <option value="16:00-18:00">4:00 PM – 6:00 PM</option>
+            </select>
+          </div>
+        </div>
+        <div id="bookingMsg" class="message hidden"></div>
+        <button class="btn btn-primary" id="bookBtn" onclick="submitBooking()">Confirm Booking</button>
+      </div>
+
+      <!-- Sign-off -->
+      <div class="card" id="signoffSection" style="display:none;margin-bottom:1rem;">
+        <div class="card-title">✅ Sign Off & Rate</div>
+        <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:1rem;">Is the repair complete to your satisfaction? Rate the service to close this work order.</p>
+        <div class="field">
+          <label>Your Rating <span class="req">*</span></label>
+          <div class="stars" id="starRating">
+            <span class="star" data-v="1">★</span>
+            <span class="star" data-v="2">★</span>
+            <span class="star" data-v="3">★</span>
+            <span class="star" data-v="4">★</span>
+            <span class="star" data-v="5">★</span>
+          </div>
+        </div>
+        <div class="field" style="margin-top:.75rem;">
+          <label>Feedback (optional)</label>
+          <textarea id="signoffFeedback" rows="3" placeholder="Tell us about your experience…"></textarea>
+        </div>
+        <div id="signoffMsg" class="message hidden"></div>
+        <button class="btn btn-success" onclick="submitSignoff()" style="margin-top:.75rem;">Sign Off & Close</button>
+      </div>
+
+      <!-- Closed -->
+      <div class="card" id="closedSection" style="display:none;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:.75rem;">🎉</div>
+        <h2 style="margin-bottom:.5rem;">All Done!</h2>
+        <p style="color:var(--gray-600);">This work order has been closed. Thank you for your feedback.</p>
+        <div id="closedRating" style="margin-top:1rem;font-size:1.5rem;color:#f59e0b;"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const token = location.pathname.split('/track/')[1];
+    let order = null;
+    let selectedRating = 0;
+
+    const statusOrder = ['pending','accepted','in_progress','scheduled','completed','closed'];
+    const stepMap = { pending:'submitted', accepted:'accepted', in_progress:'accepted', scheduled:'scheduled', completed:'completed', closed:'closed' };
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/tenant/track/${token}`);
+        if (!res.ok) { document.getElementById('loading').classList.add('hidden'); document.getElementById('notFound').classList.remove('hidden'); return; }
+        order = await res.json();
+        render();
+      } catch { document.getElementById('loading').textContent = 'Failed to load. Please refresh.'; }
+    }
+
+    function detail(label, value) {
+      return value ? `<div style="display:flex;gap:.5rem;margin-bottom:.5rem;font-size:.875rem;"><span style="font-weight:600;min-width:100px;color:var(--gray-600);">${label}</span><span>${value}</span></div>` : '';
+    }
+
+    function render() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('orderCard').classList.remove('hidden');
+
+      document.getElementById('orderTitle').textContent = `Work Order #${order.id} — ${order.category.replace('_',' ')}`;
+      document.getElementById('orderSub').textContent = `${order.property_name || ''} · Unit ${order.unit_number || ''} · Submitted ${new Date(order.created_at).toLocaleDateString()}`;
+
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = order.status.replace('_',' ');
+      badge.className = `badge badge-${order.status}`;
+
+      // Timeline
+      const idx = statusOrder.indexOf(order.status);
+      ['submitted','accepted','scheduled','completed','closed'].forEach((step, i) => {
+        const el = document.getElementById(`step-${step}`);
+        if (i < idx) el.classList.add('done');
+        else if (i === idx || (step === 'accepted' && ['accepted','in_progress'].includes(order.status))) el.classList.add('current');
+      });
+      if (['accepted','in_progress'].includes(order.status)) document.getElementById('step-accepted').classList.add('current');
+
+      // Issue details
+      document.getElementById('issueDetails').innerHTML =
+        detail('Category', order.category.replace(/_/g,' ')) +
+        detail('Description', order.description) +
+        detail('Submitted', new Date(order.created_at).toLocaleString()) +
+        (order.notes ? detail('Landlord Note', order.notes) : '');
+
+      // Tradesman
+      if (order.tradesman_name) {
+        document.getElementById('tradesmanCard').style.display = '';
+        document.getElementById('tradesmanDetails').innerHTML =
+          detail('Name', order.tradesman_name) +
+          detail('Trade', order.tradesman_trade) +
+          detail('Phone', order.tradesman_phone);
+      }
+
+      // Photo
+      if (order.photo_path) {
+        document.getElementById('photoCard').style.display = '';
+        document.getElementById('orderPhoto').src = `/uploads/${order.photo_path}`;
+      }
+
+      // Booking section
+      if (['accepted','in_progress','scheduled'].includes(order.status)) {
+        document.getElementById('bookingSection').style.display = '';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('bookDate').min = today;
+        document.getElementById('bookDate').value = today;
+        if (order.scheduled_date) {
+          document.getElementById('existingBooking').textContent =
+            `Current booking: ${order.scheduled_date} · ${order.scheduled_time}`;
+          document.getElementById('existingBooking').classList.remove('hidden');
+        }
+      }
+
+      // Sign-off
+      if (order.status === 'completed' && !order.signed_off_at) {
+        document.getElementById('signoffSection').style.display = '';
+        document.querySelectorAll('.star').forEach(s => {
+          s.addEventListener('click', () => {
+            selectedRating = +s.dataset.v;
+            document.querySelectorAll('.star').forEach(x => x.classList.toggle('active', +x.dataset.v <= selectedRating));
+          });
+        });
+      }
+
+      // Closed
+      if (order.status === 'closed') {
+        document.getElementById('closedSection').style.display = '';
+        if (order.rating) {
+          document.getElementById('closedRating').textContent = '★'.repeat(order.rating) + '☆'.repeat(5 - order.rating);
+        }
+      }
+    }
+
+    async function submitBooking() {
+      const date = document.getElementById('bookDate').value;
+      const time = document.getElementById('bookTime').value;
+      const msg = document.getElementById('bookingMsg');
+      const btn = document.getElementById('bookBtn');
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/tenant/track/${token}/book`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ scheduled_date: date, scheduled_time: time })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        msg.textContent = 'Booking confirmed!'; msg.className = 'message success';
+        setTimeout(load, 1000);
+      } catch(e) {
+        msg.textContent = e.message; msg.className = 'message error';
+        btn.disabled = false;
+      }
+    }
+
+    async function submitSignoff() {
+      if (!selectedRating) { alert('Please select a star rating.'); return; }
+      const feedback = document.getElementById('signoffFeedback').value;
+      const msg = document.getElementById('signoffMsg');
+      try {
+        const res = await fetch(`/api/tenant/track/${token}/complete`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ rating: selectedRating, feedback })
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        msg.textContent = 'Signed off! Thank you.'; msg.className = 'message success';
+        setTimeout(load, 1000);
+      } catch(e) {
+        msg.textContent = e.message; msg.className = 'message error';
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--gray-50);">
+  <a href="/" class="logo" style="margin-bottom:2rem;font-size:1.4rem;">🏠 TenantReport</a>
+
+  <div class="card" style="width:100%;max-width:420px;">
+    <h1 style="font-size:1.4rem;margin-bottom:.25rem;">Create Landlord Account</h1>
+    <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:1.5rem;">Manage your properties and work orders in one place.</p>
+
+    <div id="msg" class="message hidden"></div>
+
+    <form id="registerForm">
+      <div class="field">
+        <label>Full Name <span class="req">*</span></label>
+        <input name="name" placeholder="Ahmed Al-Rashidi" required />
+      </div>
+      <div class="field">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" name="email" placeholder="you@email.com" required />
+      </div>
+      <div class="field">
+        <label>Phone</label>
+        <input name="phone" placeholder="+968 9000 0000" />
+      </div>
+      <div class="field">
+        <label>Password <span class="req">*</span></label>
+        <input type="password" name="password" placeholder="Min. 8 characters" minlength="8" required />
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:.75rem;" id="regBtn">Create Account</button>
+    </form>
+
+    <p style="text-align:center;margin-top:1.25rem;font-size:.875rem;color:var(--gray-600);">
+      Already have an account? <a href="/landlord/login.html" style="color:var(--primary);">Sign in →</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('regBtn');
+      const msg = document.getElementById('msg');
+      btn.disabled = true; btn.textContent = 'Creating account…';
+      const data = Object.fromEntries(new FormData(e.target));
+      try {
+        const res = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        location.href = '/landlord/dashboard.html';
+      } catch(err) {
+        msg.textContent = err.message; msg.className = 'message error';
+        btn.disabled = false; btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

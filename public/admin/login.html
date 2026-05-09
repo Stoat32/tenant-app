@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--gray-50);">
+  <a href="/" class="logo" style="margin-bottom:2rem;font-size:1.4rem;">🏠 TenantReport</a>
+
+  <div class="card" style="width:100%;max-width:400px;">
+    <h1 style="font-size:1.4rem;margin-bottom:.25rem;">Admin Login</h1>
+    <p style="color:var(--gray-600);font-size:.9rem;margin-bottom:1.5rem;">Platform administration access only.</p>
+    <div id="msg" class="message hidden"></div>
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" name="email" placeholder="admin@tenantreport.com" required /></div>
+      <div class="field"><label>Password</label><input type="password" name="password" required /></div>
+      <button type="submit" class="btn btn-primary btn-full" style="margin-top:.75rem;" id="btn">Sign In</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('btn');
+      const msg = document.getElementById('msg');
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      const data = Object.fromEntries(new FormData(e.target));
+      try {
+        const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        if (json.user.role !== 'admin') throw new Error('Not an admin account');
+        location.href = '/admin/dashboard.html';
+      } catch(err) {
+        msg.textContent = err.message; msg.className = 'message error';
+        btn.disabled = false; btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

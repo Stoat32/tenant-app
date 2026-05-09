@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — TenantReport</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🏠 TenantReport</div>
+    <nav>
+      <a href="/admin/dashboard.html" class="active">📊 Overview</a>
+      <a href="/admin/dashboard.html#gantt" onclick="showTab('gantt')">📅 Gantt Chart</a>
+      <a href="/admin/dashboard.html#landlords" onclick="showTab('landlords')">🏢 Landlords</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="color:#94a3b8;margin-bottom:.5rem;font-size:.85rem;">Admin</div>
+      <button onclick="logout()" class="btn btn-ghost btn-sm" style="color:#94a3b8;padding:0;">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="page-header">
+      <h1 id="pageTitle">Platform Overview</h1>
+      <span style="color:var(--gray-400);font-size:.875rem;">Muscat Residential — 310,000 units</span>
+    </div>
+
+    <div class="page-body">
+
+      <!-- ── Overview Tab ── -->
+      <div id="tab-overview">
+        <div class="grid-4" style="margin-bottom:1.5rem;">
+          <div class="stat-card"><div class="stat-number" id="sTotal">—</div><div class="stat-label">Total Orders</div></div>
+          <div class="stat-card stat-pending"><div class="stat-number" id="sPending">—</div><div class="stat-label">Pending</div></div>
+          <div class="stat-card stat-progress"><div class="stat-number" id="sProgress">—</div><div class="stat-label">In Progress</div></div>
+          <div class="stat-card stat-done"><div class="stat-number" id="sClosed">—</div><div class="stat-label">Closed</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:1.5rem;">
+          <div class="card">
+            <div class="card-title">⏱️ Average Cycle Times</div>
+            <div id="cycleTimes" style="font-size:.9rem;"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">⭐ Average Rating</div>
+            <div id="avgRating" style="font-size:3rem;text-align:center;padding:1rem;color:#f59e0b;"></div>
+          </div>
+        </div>
+
+        <!-- Landlord Benchmarks -->
+        <div class="card">
+          <div class="card-title">🏆 Landlord Benchmarks</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Landlord</th><th>Total Orders</th><th>Avg. Resolution (hrs)</th><th>Avg. Rating</th><th>Performance</th></tr></thead>
+              <tbody id="landlordTable"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--gray-400);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Gantt Tab ── -->
+      <div id="tab-gantt" class="hidden">
+        <div class="card" style="margin-bottom:1rem;">
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem;">
+            <div class="card-title" style="margin:0;">Work Order Timeline</div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;font-size:.75rem;margin-left:auto;">
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#f59e0b;border-radius:2px;display:inline-block;"></span>Pending</span>
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#3b82f6;border-radius:2px;display:inline-block;"></span>Accepted</span>
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#8b5cf6;border-radius:2px;display:inline-block;"></span>In Progress</span>
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#ec4899;border-radius:2px;display:inline-block;"></span>Scheduled</span>
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#10b981;border-radius:2px;display:inline-block;"></span>Completed</span>
+              <span style="display:flex;align-items:center;gap:.3rem;"><span style="width:12px;height:12px;background:#6b7280;border-radius:2px;display:inline-block;"></span>Closed</span>
+            </div>
+          </div>
+          <div id="ganttChart" style="overflow-x:auto;"></div>
+        </div>
+      </div>
+
+      <!-- ── Landlords Tab ── -->
+      <div id="tab-landlords" class="hidden">
+        <div class="card">
+          <div class="card-title">Registered Landlords</div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Joined</th></tr></thead>
+              <tbody id="landlordsList"><tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--gray-400);">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  let allOrders = [];
+  const tabs = ['overview','gantt','landlords'];
+
+  function showTab(name) {
+    tabs.forEach(t => document.getElementById(`tab-${t}`).classList.add('hidden'));
+    document.getElementById(`tab-${name}`).classList.remove('hidden');
+    const titles = { overview:'Platform Overview', gantt:'Gantt Chart', landlords:'Landlords' };
+    document.getElementById('pageTitle').textContent = titles[name];
+    if (name === 'gantt') renderGantt();
+    if (name === 'landlords') loadLandlords();
+  }
+
+  async function init() {
+    const me = await fetch('/api/auth/me').then(r => r.json()).catch(() => null);
+    if (!me || me.role !== 'admin') { location.href = '/admin/login.html'; return; }
+    loadStats();
+    allOrders = await fetch('/api/admin/work-orders').then(r => r.json());
+  }
+
+  async function loadStats() {
+    const { totals, landlords } = await fetch('/api/admin/stats').then(r => r.json());
+    document.getElementById('sTotal').textContent = totals.total || 0;
+    document.getElementById('sPending').textContent = totals.pending || 0;
+    document.getElementById('sProgress').textContent = totals.in_progress || 0;
+    document.getElementById('sClosed').textContent = totals.closed || 0;
+
+    document.getElementById('cycleTimes').innerHTML = `
+      <div style="display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--gray-100);">
+        <span style="color:var(--gray-600);">Avg. time to accept</span>
+        <strong>${totals.avg_accept_hours ?? '—'} hrs</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:.6rem 0;">
+        <span style="color:var(--gray-600);">Avg. time to resolve</span>
+        <strong>${totals.avg_resolve_hours ?? '—'} hrs</strong>
+      </div>`;
+
+    const rating = parseFloat(totals.avg_rating);
+    document.getElementById('avgRating').innerHTML = isNaN(rating)
+      ? '<span style="font-size:1rem;color:var(--gray-400);">No ratings yet</span>'
+      : `${'★'.repeat(Math.round(rating))}${'☆'.repeat(5-Math.round(rating))}<div style="font-size:1rem;color:var(--gray-800);margin-top:.5rem;">${rating.toFixed(1)} / 5.0</div>`;
+
+    const tbody = document.getElementById('landlordTable');
+    if (!landlords.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--gray-400);">No data yet.</td></tr>'; return; }
+    tbody.innerHTML = landlords.map(l => {
+      const hrs = parseFloat(l.avg_hours);
+      const rating = parseFloat(l.avg_rating);
+      const perf = hrs < 24 ? '🟢 Fast' : hrs < 72 ? '🟡 Average' : '🔴 Slow';
+      return `<tr>
+        <td><strong>${esc(l.landlord)}</strong></td>
+        <td>${l.total}</td>
+        <td>${isNaN(hrs) ? '—' : hrs + ' hrs'}</td>
+        <td>${isNaN(rating) ? '—' : '★'.repeat(Math.round(rating)) + ' ' + rating.toFixed(1)}</td>
+        <td>${perf}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderGantt() {
+    const el = document.getElementById('ganttChart');
+    if (!allOrders.length) { el.innerHTML = '<p style="color:var(--gray-400);text-align:center;padding:2rem;">No work orders to display.</p>'; return; }
+
+    const now = Date.now();
+    const start = Math.min(...allOrders.map(o => new Date(o.created_at).getTime()));
+    const end = Math.max(...allOrders.map(o => new Date(o.closed_at || o.updated_at || now).getTime()));
+    const span = end - start || 1;
+
+    const colorMap = { pending:'#f59e0b', accepted:'#3b82f6', in_progress:'#8b5cf6', scheduled:'#ec4899', completed:'#10b981', closed:'#6b7280' };
+
+    el.innerHTML = allOrders.slice(0, 50).map(o => {
+      const oStart = new Date(o.created_at).getTime();
+      const oEnd = new Date(o.closed_at || o.updated_at || now).getTime();
+      const left = ((oStart - start) / span * 100).toFixed(2);
+      const width = Math.max(((oEnd - oStart) / span * 100), 0.5).toFixed(2);
+      const color = colorMap[o.status] || '#9ca3af';
+      const label = `#${o.id} · ${o.property_name || ''} Unit ${o.unit_number || ''} · ${o.tenant_name}`;
+      return `<div class="gantt-row">
+        <div class="gantt-label" title="${esc(label)}">${esc(label)}</div>
+        <div class="gantt-track">
+          <div class="gantt-bar" style="left:${left}%;width:${width}%;background:${color};" title="${o.status} · ${new Date(o.created_at).toLocaleDateString()}">
+            ${width > 5 ? o.status.replace('_',' ') : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function loadLandlords() {
+    const list = await fetch('/api/admin/landlords').then(r => r.json());
+    const tbody = document.getElementById('landlordsList');
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--gray-400);">No landlords registered yet.</td></tr>'; return; }
+    tbody.innerHTML = list.map(l => `<tr>
+      <td><strong>${esc(l.name)}</strong></td>
+      <td>${esc(l.email)}</td>
+      <td>${esc(l.phone || '—')}</td>
+      <td>${new Date(l.created_at).toLocaleDateString()}</td>
+    </tr>`).join('');
+  }
+
+  async function logout() { await fetch('/api/auth/logout', { method:'POST' }); location.href = '/admin/login.html'; }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  const hash = location.hash.replace('#','');
+  if (tabs.includes(hash)) showTab(hash); else showTab('overview');
+  init();
+</script>
+</body>
+</html>
